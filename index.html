@@ -75,7 +75,7 @@
   }
   .viewbox h3 { margin: 0 0 10px; font-size: 0.85rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
   .viewbox canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; margin: 0 auto; }
-  .palette { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .palette { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 14px; row-gap: 26px; }
   .swatch {
     width: 46px; height: 46px; border-radius: 8px;
     border: 1px solid var(--border);
@@ -88,7 +88,7 @@
     font-size: 0.62rem; color: var(--muted); text-align: center;
     font-family: ui-monospace, monospace;
   }
-  .stats { color: var(--muted); font-size: 0.85rem; margin-top: 8px; }
+  .stats { color: var(--muted); font-size: 0.85rem; margin-top: 24px; }
   .stats b { color: var(--text); }
   .copyall { margin-top: 8px; }
   .toast {
@@ -293,6 +293,15 @@
     }
     var n = parseInt(nColors.value, 10);
     palette = medianCut(opaque, n);
+    // dedupe: median-cut can emit identical buckets when the image has fewer
+    // distinct colors than N -- collapse to one swatch per distinct color
+    var seen = {};
+    var uniq = [];
+    for (var u = 0; u < palette.length; u++) {
+      var key = palette[u][0] + "," + palette[u][1] + "," + palette[u][2];
+      if (!seen[key]) { seen[key] = true; uniq.push(palette[u]); }
+    }
+    palette = uniq;
     // build lookup
     var lookup = palette.map(function (c) { return c; });
 
