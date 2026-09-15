@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Palette Reducer — LaunchTower</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel2: #1d212b;
+    --border: #2a2f3a;
+    --text: #e6e9ef;
+    --muted: #8b93a3;
+    --accent: #5b8cff;
+    --accent2: #34d399;
+    --danger: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+  header h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  header p { color: var(--muted); margin: 0 0 20px; font-size: 0.95rem; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .drop {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .drop:hover, .drop.drag { border-color: var(--accent); background: rgba(91,140,255,0.06); }
+  .drop strong { color: var(--text); }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+  .ctrl { display: flex; flex-direction: column; gap: 6px; }
+  .ctrl label { font-size: 0.8rem; color: var(--muted); }
+  input[type=range] { accent-color: var(--accent); width: 180px; }
+  select, input[type=number] {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 0.9rem;
+  }
+  .val { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 600; }
+  button {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; padding: 10px 18px; font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; transition: filter .15s;
+  }
+  button:hover { filter: brightness(1.1); }
+  button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .views { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .views { grid-template-columns: 1fr; } }
+  .viewbox {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    overflow: auto;
+    max-height: 480px;
+  }
+  .viewbox h3 { margin: 0 0 10px; font-size: 0.85rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  .viewbox canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; margin: 0 auto; }
+  .palette { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .swatch {
+    width: 46px; height: 46px; border-radius: 8px;
+    border: 1px solid var(--border);
+    position: relative; cursor: pointer;
+    transition: transform .1s;
+  }
+  .swatch:hover { transform: translateY(-2px); }
+  .swatch span {
+    position: absolute; bottom: -20px; left: 0; right: 0;
+    font-size: 0.62rem; color: var(--muted); text-align: center;
+    font-family: ui-monospace, monospace;
+  }
+  .stats { color: var(--muted); font-size: 0.85rem; margin-top: 8px; }
+  .stats b { color: var(--text); }
+  .copyall { margin-top: 8px; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--accent2); color: #04221a; font-weight: 600;
+    padding: 10px 20px; border-radius: 999px; opacity: 0; pointer-events: none;
+    transition: opacity .2s; z-index: 10;
+  }
+  .toast.show { opacity: 1; }
+  footer { margin-top: 40px; text-align: center; color: var(--muted); font-size: 0.85rem; }
+  footer a { color: var(--accent); text-decoration: none; }
+  .err { color: var(--danger); font-size: .9rem; margin-top: 8px; display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Palette Reducer</h1>
+    <p>Upload pixel art, reduce it to N colors (2–64) with median-cut quantization, compare before/after, and download the result. Runs 100% in your browser.</p>
+  </header>
+
+  <div class="panel">
+    <div class="drop" id="drop">
+      <div><strong>Drop an image here</strong> or click to browse</div>
+      <div style="margin-top:6px;font-size:.85rem">PNG, JPG, GIF, WebP — transparency preserved</div>
+    </div>
+    <input type="file" id="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="panel" id="controlsPanel" style="display:none">
+    <div class="controls">
+      <div class="ctrl">
+        <label>Colors: <span class="val" id="nVal">16</span></label>
+        <input type="range" id="nColors" min="2" max="64" value="16">
+      </div>
+      <div class="ctrl">
+        <label>Zoom</label>
+        <select id="zoom">
+          <option value="1">1×</option>
+          <option value="2">2×</option>
+          <option value="4" selected>4×</option>
+          <option value="8">8×</option>
+          <option value="16">16×</option>
+          <option value="32">32×</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <label>&nbsp;</label>
+        <button id="download" disabled>Download PNG</button>
+      </div>
+      <div class="ctrl">
+        <label>&nbsp;</label>
+        <button id="copyHex" class="ghost" disabled>Copy hexes</button>
+      </div>
+    </div>
+    <div class="palette" id="palette"></div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="views" id="views" style="display:none">
+    <div class="viewbox">
+      <h3>Original</h3>
+      <canvas id="before"></canvas>
+    </div>
+    <div class="viewbox">
+      <h3>Reduced</h3>
+      <canvas id="after"></canvas>
+    </div>
+  </div>
+
+  <footer>
+    Part of <a href="https://pennypenguinapp-beep.github.io/" target="_blank" rel="noopener">LaunchTower</a> — free tools for pixel artists &amp; game devs.
+  </footer>
+</div>
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+(function () {
+  "use strict";
+  var drop = document.getElementById("drop");
+  var fileInput = document.getElementById("file");
+  var errEl = document.getElementById("err");
+  var controlsPanel = document.getElementById("controlsPanel");
+  var views = document.getElementById("views");
+  var before = document.getElementById("before");
+  var after = document.getElementById("after");
+  var nColors = document.getElementById("nColors");
+  var nVal = document.getElementById("nVal");
+  var zoomSel = document.getElementById("zoom");
+  var downloadBtn = document.getElementById("download");
+  var copyBtn = document.getElementById("copyHex");
+  var paletteEl = document.getElementById("palette");
+  var statsEl = document.getElementById("stats");
+  var toast = document.getElementById("toast");
+
+  var original = null; // ImageData
+  var reduced = null;  // ImageData
+  var palette = [];
+
+  function showErr(msg) {
+    errEl.textContent = msg;
+    errEl.style.display = "block";
+  }
+  function clearErr() { errEl.style.display = "none"; }
+
+  function toastShow(msg) {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(function () { toast.classList.remove("show"); }, 1400);
+  }
+
+  drop.addEventListener("click", function () { fileInput.click(); });
+  ["dragover", "dragenter"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("drag"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("drag"); });
+  });
+  drop.addEventListener("drop", function (e) {
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files && fileInput.files[0]) loadFile(fileInput.files[0]);
+  });
+
+  function loadFile(file) {
+    clearErr();
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (w === 0 || h === 0) { showErr("Could not read image dimensions."); return; }
+        var c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        var ctx = c.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0, w, h);
+        var data = ctx.getImageData(0, 0, w, h);
+        original = data;
+        run();
+      };
+      img.onerror = function () { showErr("Could not decode that image file."); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function () { showErr("Could not read the file."); };
+    reader.readAsDataURL(file);
+  }
+
+  // ---- Median-cut quantization ----
+  function medianCut(pixels, n) {
+    // pixels: array of [r,g,b] (opaque only)
+    if (pixels.length === 0) return [];
+    var boxes = [pixels.slice()];
+    while (boxes.length < n) {
+      // pick the box with the largest range (and most pixels as tiebreak)
+      var best = -1, bestScore = -1;
+      for (var i = 0; i < boxes.length; i++) {
+        if (boxes[i].length < 2) continue;
+        var r = range(boxes[i], 0), g = range(boxes[i], 1), b = range(boxes[i], 2);
+        var score = Math.max(r, g, b) * 1000 + boxes[i].length;
+        if (score > bestScore) { bestScore = score; best = i; }
+      }
+      if (best === -1) break;
+      var box = boxes[best];
+      var r = range(box, 0), g = range(box, 1), b = range(box, 2);
+      var ch = (r >= g && r >= b) ? 0 : (g >= b ? 1 : 2);
+      box.sort(function (a, b2) { return a[ch] - b2[ch]; });
+      var mid = box.length >> 1;
+      boxes.splice(best, 1, box.slice(0, mid), box.slice(mid));
+    }
+    var colors = boxes.map(function (box) {
+      var ar = 0, ag = 0, ab = 0;
+      for (var i = 0; i < box.length; i++) { ar += box[i][0]; ag += box[i][1]; ab += box[i][2]; }
+      var len = box.length;
+      return [Math.round(ar / len), Math.round(ag / len), Math.round(ab / len)];
+    });
+    return colors;
+  }
+  function range(box, ch) {
+    var min = 255, max = 0;
+    for (var i = 0; i < box.length; i++) {
+      var v = box[i][ch];
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+    return max - min;
+  }
+
+  function toHex(r, g, b) {
+    function h(x) { var s = x.toString(16); return s.length === 1 ? "0" + s : s; }
+    return "#" + h(r) + h(g) + h(b);
+  }
+
+  function run() {
+    var w = original.width, h = original.height;
+    var d = original.data;
+    var opaque = [];
+    for (var i = 0; i < d.length; i += 4) {
+      if (d[i + 3] > 0) opaque.push([d[i], d[i + 1], d[i + 2]]);
+    }
+    var n = parseInt(nColors.value, 10);
+    palette = medianCut(opaque, n);
+    // build lookup
+    var lookup = palette.map(function (c) { return c; });
+
+    var out = new ImageData(w, h);
+    var od = out.data;
+    for (var j = 0; j < d.length; j += 4) {
+      var a = d[j + 3];
+      if (a === 0) { od[j] = 0; od[j+1] = 0; od[j+2] = 0; od[j+3] = 0; continue; }
+      var r = d[j], g = d[j+1], b = d[j+2];
+      // nearest palette color
+      var best = 0, bestD = Infinity;
+      for (var k = 0; k < lookup.length; k++) {
+        var dr = lookup[k][0] - r, dg = lookup[k][1] - g, db = lookup[k][2] - b;
+        var dist = dr * dr + dg * dg + db * db;
+        if (dist < bestD) { bestD = dist; best = k; }
+      }
+      od[j] = lookup[best][0];
+      od[j+1] = lookup[best][1];
+      od[j+2] = lookup[best][2];
+      od[j+3] = a;
+    }
+    reduced = out;
+    render();
+  }
+
+  function render() {
+    var w = original.width, h = original.height;
+    var z = parseInt(zoomSel.value, 10);
+    var dispW = w * z, dispH = h * z;
+
+    before.width = dispW; before.height = dispH;
+    after.width = dispW; after.height = dispH;
+    var bctx = before.getContext("2d");
+    var actx = after.getContext("2d");
+    bctx.imageSmoothingEnabled = false;
+    actx.imageSmoothingEnabled = false;
+
+    // draw original at 1x then scale
+    var tmp = document.createElement("canvas");
+    tmp.width = w; tmp.height = h;
+    tmp.getContext("2d").putImageData(original, 0, 0);
+    bctx.drawImage(tmp, 0, 0, dispW, dispH);
+
+    var tmp2 = document.createElement("canvas");
+    tmp2.width = w; tmp2.height = h;
+    tmp2.getContext("2d").putImageData(reduced, 0, 0);
+    actx.drawImage(tmp2, 0, 0, dispW, dispH);
+
+    renderPalette();
+    statsEl.innerHTML = "Original: <b>" + w + "×" + h + "</b> px · Reduced to <b>" + palette.length + "</b> colors";
+    downloadBtn.disabled = false;
+    copyBtn.disabled = false;
+  }
+
+  function renderPalette() {
+    paletteEl.innerHTML = "";
+    palette.forEach(function (c) {
+      var hex = toHex(c[0], c[1], c[2]);
+      var el = document.createElement("div");
+      el.className = "swatch";
+      el.style.background = hex;
+      el.title = "Click to copy " + hex;
+      var s = document.createElement("span");
+      s.textContent = hex;
+      el.appendChild(s);
+      el.addEventListener("click", function () {
+        copyText(hex, "Copied " + hex);
+      });
+      paletteEl.appendChild(el);
+    });
+  }
+
+  function copyText(text, msg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toastShow(msg || "Copied!"); });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); toastShow(msg || "Copied!"); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  }
+
+  nColors.addEventListener("input", function () {
+    nVal.textContent = nColors.value;
+    if (original) run();
+  });
+  zoomSel.addEventListener("change", function () { if (reduced) render(); });
+
+  downloadBtn.addEventListener("click", function () {
+    if (!reduced) return;
+    var c = document.createElement("canvas");
+    c.width = reduced.width; c.height = reduced.height;
+    c.getContext("2d").putImageData(reduced, 0, 0);
+    var a = document.createElement("a");
+    a.download = "palette-reduced.png";
+    a.href = c.toDataURL("image/png");
+    a.click();
+  });
+
+  copyBtn.addEventListener("click", function () {
+    var hexes = palette.map(function (c) { return toHex(c[0], c[1], c[2]); });
+    copyText(hexes.join("\n"), "Copied " + hexes.length + " hexes");
+  });
+
+  // show panels when image loaded
+  var _run = run;
+  run = function () {
+    _run();
+    controlsPanel.style.display = "block";
+    views.style.display = "grid";
+  };
+})();
+</script>
+</body>
+</html>
