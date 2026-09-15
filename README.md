@@ -1,0 +1,2 @@
+# launchtower-palette-reducer
+LaunchTower
