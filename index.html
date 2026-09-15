@@ -183,6 +183,9 @@
     <div style="font-size:.78rem;margin-top:6px;">PNG · JPG · GIF · WebP</div>
   </div>
   <input type="file" id="file" accept="image/png,image/jpeg,image/gif,image/webp">
+  <div style="text-align:center;margin-top:10px;">
+    <button id="loadExample" class="ghost">Load example</button>
+  </div>
 
   <div class="controls">
     <div class="control">
@@ -461,8 +464,50 @@
     }, "image/png");
   }
 
+  // ---- Example image (generated in code) ----
+  function loadExample() {
+    var w = 64, h = 32;
+    var cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    var ctx = cv.getContext("2d");
+    // 8 distinct 16x16 tiles with simple shapes
+    var tiles = [
+      ["#e74c3c", "circle"], ["#f39c12", "square"], ["#2ecc71", "triangle"],
+      ["#3498db", "diamond"], ["#9b59b6", "cross"], ["#1abc9c", "checker"],
+      ["#e67e22", "ring"], ["#ecf0f1", "dot"]
+    ];
+    for (var i = 0; i < 8; i++) {
+      var ox = i * 16, oy = 0;
+      ctx.fillStyle = tiles[i][0];
+      ctx.fillRect(ox, oy, 16, 16);
+      ctx.fillStyle = "#1a1a2e";
+      var kind = tiles[i][1];
+      if (kind === "circle") { ctx.beginPath(); ctx.arc(ox+8, oy+8, 5, 0, Math.PI*2); ctx.fill(); }
+      else if (kind === "square") { ctx.fillRect(ox+4, oy+4, 8, 8); }
+      else if (kind === "triangle") { ctx.beginPath(); ctx.moveTo(ox+8, oy+3); ctx.lineTo(ox+13, oy+13); ctx.lineTo(ox+3, oy+13); ctx.closePath(); ctx.fill(); }
+      else if (kind === "diamond") { ctx.beginPath(); ctx.moveTo(ox+8, oy+2); ctx.lineTo(ox+14, oy+8); ctx.lineTo(ox+8, oy+14); ctx.lineTo(ox+2, oy+8); ctx.closePath(); ctx.fill(); }
+      else if (kind === "cross") { ctx.fillRect(ox+6, oy+3, 4, 10); ctx.fillRect(ox+3, oy+6, 10, 4); }
+      else if (kind === "checker") { ctx.fillRect(ox+2, oy+2, 6, 6); ctx.fillRect(ox+8, oy+8, 6, 6); }
+      else if (kind === "ring") { ctx.beginPath(); ctx.arc(ox+8, oy+8, 6, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = tiles[i][0]; ctx.beginPath(); ctx.arc(ox+8, oy+8, 3, 0, Math.PI*2); ctx.fill(); }
+      else { ctx.beginPath(); ctx.arc(ox+8, oy+8, 2, 0, Math.PI*2); ctx.fill(); }
+    }
+    // second row: gradient-ish stripes to add more colors
+    for (var x = 0; x < w; x++) {
+      var t = x / w;
+      ctx.fillStyle = "rgb(" + Math.round(255*t) + "," + Math.round(128*(1-t)) + "," + Math.round(200*t) + ")";
+      ctx.fillRect(x, 16, 1, 16);
+    }
+    // feed through the exact same code path as an uploaded file
+    srcCanvas = cv;
+    fileName = "example";
+    renderOriginal();
+    doReduce();
+    toastMsg("Example loaded");
+  }
+
   // events
   drop.addEventListener("click", function(){ file.click(); });
+  document.getElementById("loadExample").addEventListener("click", loadExample);
   file.addEventListener("change", function(){ loadFile(file.files[0]); });
   ["dragenter","dragover"].forEach(function(ev){
     drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add("drag"); });
