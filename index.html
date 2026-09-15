@@ -6,414 +6,496 @@
 <title>Palette Reducer — LaunchTower</title>
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #171a21;
-    --panel2: #1d212b;
-    --border: #2a2f3a;
-    --text: #e6e9ef;
-    --muted: #8b93a3;
-    --accent: #5b8cff;
-    --accent2: #34d399;
+    --bg: #0f1117;
+    --panel: #171a23;
+    --panel2: #1d2130;
+    --border: #2a2f42;
+    --text: #e8eaf2;
+    --muted: #8b91a7;
+    --accent: #6c8cff;
+    --accent2: #4ade80;
     --danger: #f87171;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    margin: 0;
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
-  header h1 { font-size: 1.6rem; margin: 0 0 4px; }
-  header p { color: var(--muted); margin: 0 0 20px; font-size: 0.95rem; }
-  .panel {
+  header { text-align: center; margin-bottom: 20px; max-width: 720px; }
+  h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 0.92rem; margin-top: 6px; line-height: 1.5; }
+
+  .card {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 16px;
+    padding: 18px;
+    width: 100%;
+    max-width: 720px;
     margin-bottom: 16px;
   }
-  .drop {
+  .dropzone {
     border: 2px dashed var(--border);
     border-radius: 10px;
     padding: 28px 16px;
     text-align: center;
-    color: var(--muted);
     cursor: pointer;
     transition: border-color .15s, background .15s;
+    color: var(--muted);
+    font-size: 0.95rem;
   }
-  .drop:hover, .drop.drag { border-color: var(--accent); background: rgba(91,140,255,0.06); }
-  .drop strong { color: var(--text); }
-  .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
-  .ctrl { display: flex; flex-direction: column; gap: 6px; }
-  .ctrl label { font-size: 0.8rem; color: var(--muted); }
-  input[type=range] { accent-color: var(--accent); width: 180px; }
-  select, input[type=number] {
-    background: var(--panel2); color: var(--text);
-    border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 10px; font-size: 0.9rem;
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: rgba(108,140,255,.06); color: var(--text); }
+  .dropzone strong { color: var(--accent); }
+  .file-input { display: none; }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 14px;
   }
+  .control { display: flex; flex-direction: column; gap: 5px; }
+  .control label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  select, input[type=range] {
+    background: var(--panel2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 0.9rem;
+    outline: none;
+  }
+  select:focus { border-color: var(--accent); }
+  input[type=range] { padding: 0; height: 30px; accent-color: var(--accent); width: 160px; }
   .val { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 600; }
+
   button {
-    background: var(--accent); color: #fff; border: none;
-    border-radius: 8px; padding: 10px 18px; font-size: 0.95rem; font-weight: 600;
-    cursor: pointer; transition: filter .15s;
+    background: var(--accent);
+    color: #0b0e1a;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter .15s, transform .05s;
   }
   button:hover { filter: brightness(1.1); }
-  button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  button:active { transform: scale(.98); }
   button:disabled { opacity: .4; cursor: not-allowed; }
-  .views { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 760px) { .views { grid-template-columns: 1fr; } }
-  .viewbox {
-    background: var(--panel2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px;
-    overflow: auto;
-    max-height: 480px;
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  button.ghost:hover { border-color: var(--accent); filter: none; }
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    max-width: 720px;
+    margin-bottom: 16px;
   }
-  .viewbox h3 { margin: 0 0 10px; font-size: 0.85rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-  .viewbox canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; margin: 0 auto; }
-  .palette { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 14px; row-gap: 26px; }
-  .swatch {
-    width: 46px; height: 46px; border-radius: 8px;
+  .pane {
+    background: var(--panel);
     border: 1px solid var(--border);
-    position: relative; cursor: pointer;
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  .pane h3 { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+  .canvas-wrap {
+    background: repeating-conic-gradient(#1a1e2b 0% 25%, #12141d 0% 50%) 0 0 / 16px 16px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    max-height: 340px;
+  }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+  .empty { color: var(--muted); font-size: 0.85rem; padding: 40px 10px; }
+
+  .palette-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 12px;
+  }
+  .swatch {
+    width: 34px; height: 34px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.15);
+    cursor: pointer;
+    position: relative;
     transition: transform .1s;
   }
-  .swatch:hover { transform: translateY(-2px); }
-  .swatch span {
-    position: absolute; bottom: -20px; left: 0; right: 0;
-    font-size: 0.62rem; color: var(--muted); text-align: center;
-    font-family: ui-monospace, monospace;
+  .swatch:hover { transform: scale(1.12); }
+  .swatch .hex {
+    position: absolute;
+    bottom: -20px; left: 50%; transform: translateX(-50%);
+    font-size: 0.6rem; color: var(--muted); white-space: nowrap;
+    opacity: 0; transition: opacity .15s;
   }
-  .stats { color: var(--muted); font-size: 0.85rem; margin-top: 24px; }
-  .stats b { color: var(--text); }
-  .copyall { margin-top: 8px; }
+  .swatch:hover .hex { opacity: 1; }
+  .palette-hint { color: var(--muted); font-size: 0.75rem; margin-top: 26px; }
+
+  .stats { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; color: var(--muted); font-size: 0.85rem; margin-top: 10px; }
+  .stats b { color: var(--text); font-variant-numeric: tabular-nums; }
+
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-    background: var(--accent2); color: #04221a; font-weight: 600;
-    padding: 10px 20px; border-radius: 999px; opacity: 0; pointer-events: none;
-    transition: opacity .2s; z-index: 10;
+    background: var(--accent2); color: #06210f; font-weight: 600; font-size: 0.85rem;
+    padding: 8px 16px; border-radius: 8px; opacity: 0; pointer-events: none; transition: opacity .2s;
   }
   .toast.show { opacity: 1; }
-  footer { margin-top: 40px; text-align: center; color: var(--muted); font-size: 0.85rem; }
-  footer a { color: var(--accent); text-decoration: none; }
-  .err { color: var(--danger); font-size: .9rem; margin-top: 8px; display: none; }
+
+  footer { margin-top: 28px; text-align: center; }
+  footer a { color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+  footer a:hover { color: var(--accent); }
+  footer .brand { color: var(--accent); font-weight: 600; }
+
+  @media (max-width: 560px) {
+    .compare { grid-template-columns: 1fr; }
+    .controls { gap: 10px; }
+    input[type=range] { width: 130px; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Palette Reducer</h1>
-    <p>Upload pixel art, reduce it to N colors (2–64) with median-cut quantization, compare before/after, and download the result. Runs 100% in your browser.</p>
-  </header>
+<header>
+  <h1>Palette <span>Reducer</span></h1>
+  <p class="sub">Upload pixel art and reduce it to N colors with median-cut quantization. Compare before/after at zoom, copy the resulting hexes, and download a clean PNG. All in your browser — nothing is uploaded.</p>
+</header>
 
-  <div class="panel">
-    <div class="drop" id="drop">
-      <div><strong>Drop an image here</strong> or click to browse</div>
-      <div style="margin-top:6px;font-size:.85rem">PNG, JPG, GIF, WebP — transparency preserved</div>
-    </div>
-    <input type="file" id="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
-    <div class="err" id="err"></div>
+<div class="card">
+  <div class="dropzone" id="drop">
+    <div><strong>Click to choose</strong> or drag &amp; drop an image</div>
+    <div style="font-size:.78rem;margin-top:6px;">PNG · JPG · GIF · WebP</div>
   </div>
+  <input type="file" id="file" accept="image/png,image/jpeg,image/gif,image/webp">
 
-  <div class="panel" id="controlsPanel" style="display:none">
-    <div class="controls">
-      <div class="ctrl">
-        <label>Colors: <span class="val" id="nVal">16</span></label>
-        <input type="range" id="nColors" min="2" max="64" value="16">
-      </div>
-      <div class="ctrl">
-        <label>Zoom</label>
-        <select id="zoom">
-          <option value="1">1×</option>
-          <option value="2">2×</option>
-          <option value="4" selected>4×</option>
-          <option value="8">8×</option>
-          <option value="16">16×</option>
-          <option value="32">32×</option>
-        </select>
-      </div>
-      <div class="ctrl">
-        <label>&nbsp;</label>
-        <button id="download" disabled>Download PNG</button>
-      </div>
-      <div class="ctrl">
-        <label>&nbsp;</label>
-        <button id="copyHex" class="ghost" disabled>Copy hexes</button>
-      </div>
+  <div class="controls">
+    <div class="control">
+      <label for="nColor">Target colors</label>
+      <select id="nColor">
+        <option value="2">2</option><option value="4">4</option>
+        <option value="8" selected>8</option><option value="16">16</option>
+        <option value="32">32</option><option value="64">64</option>
+      </select>
     </div>
-    <div class="palette" id="palette"></div>
-    <div class="stats" id="stats"></div>
+    <div class="control">
+      <label for="zoom">Zoom <span class="val" id="zoomVal">8×</span></label>
+      <input type="range" id="zoom" min="1" max="32" value="8">
+    </div>
+    <button id="reduce">Reduce</button>
+    <button id="download" class="ghost" disabled>Download PNG</button>
+    <button id="copyAll" class="ghost" disabled>Copy hexes</button>
   </div>
-
-  <div class="views" id="views" style="display:none">
-    <div class="viewbox">
-      <h3>Original</h3>
-      <canvas id="before"></canvas>
-    </div>
-    <div class="viewbox">
-      <h3>Reduced</h3>
-      <canvas id="after"></canvas>
-    </div>
-  </div>
-
-  <footer>
-    Part of <a href="https://pennypenguinapp-beep.github.io/" target="_blank" rel="noopener">LaunchTower</a> — free tools for pixel artists &amp; game devs.
-  </footer>
+  <div class="stats" id="stats"></div>
 </div>
+
+<div class="compare">
+  <div class="pane">
+    <h3>Original</h3>
+    <div class="canvas-wrap" id="origWrap"><div class="empty">No image yet</div></div>
+  </div>
+  <div class="pane">
+    <h3>Reduced</h3>
+    <div class="canvas-wrap" id="redWrap"><div class="empty">No image yet</div></div>
+    <div class="palette-row" id="palette"></div>
+    <div class="palette-hint" id="palHint" style="display:none;">Click a swatch to copy its hex</div>
+  </div>
+</div>
+
 <div class="toast" id="toast">Copied!</div>
+
+<footer>
+  <p>Part of <a href="https://pennypenguinapp-beep.github.io/" target="_blank" rel="noopener"><span class="brand">LaunchTower</span> — free tools for pixel artists &amp; game devs</a></p>
+</footer>
 
 <script>
 (function () {
   "use strict";
   var drop = document.getElementById("drop");
-  var fileInput = document.getElementById("file");
-  var errEl = document.getElementById("err");
-  var controlsPanel = document.getElementById("controlsPanel");
-  var views = document.getElementById("views");
-  var before = document.getElementById("before");
-  var after = document.getElementById("after");
-  var nColors = document.getElementById("nColors");
-  var nVal = document.getElementById("nVal");
-  var zoomSel = document.getElementById("zoom");
+  var file = document.getElementById("file");
+  var nSel = document.getElementById("nColor");
+  var zoom = document.getElementById("zoom");
+  var zoomVal = document.getElementById("zoomVal");
+  var reduceBtn = document.getElementById("reduce");
   var downloadBtn = document.getElementById("download");
-  var copyBtn = document.getElementById("copyHex");
-  var paletteEl = document.getElementById("palette");
-  var statsEl = document.getElementById("stats");
+  var copyAllBtn = document.getElementById("copyAll");
+  var origWrap = document.getElementById("origWrap");
+  var redWrap = document.getElementById("redWrap");
+  var palette = document.getElementById("palette");
+  var palHint = document.getElementById("palHint");
+  var stats = document.getElementById("stats");
   var toast = document.getElementById("toast");
 
-  var original = null; // ImageData
-  var reduced = null;  // ImageData
-  var palette = [];
+  var srcCanvas = null;   // original at native resolution
+  var reducedCanvas = null;
+  var paletteHexes = [];
+  var fileName = "reduced";
 
-  function showErr(msg) {
-    errEl.textContent = msg;
-    errEl.style.display = "block";
-  }
-  function clearErr() { errEl.style.display = "none"; }
-
-  function toastShow(msg) {
+  function toastMsg(msg) {
     toast.textContent = msg;
     toast.classList.add("show");
-    setTimeout(function () { toast.classList.remove("show"); }, 1400);
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function(){ toast.classList.remove("show"); }, 1400);
   }
 
-  drop.addEventListener("click", function () { fileInput.click(); });
-  ["dragover", "dragenter"].forEach(function (ev) {
-    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("drag"); });
-  });
-  ["dragleave", "drop"].forEach(function (ev) {
-    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("drag"); });
-  });
-  drop.addEventListener("drop", function (e) {
-    var f = e.dataTransfer.files && e.dataTransfer.files[0];
-    if (f) loadFile(f);
-  });
-  fileInput.addEventListener("change", function () {
-    if (fileInput.files && fileInput.files[0]) loadFile(fileInput.files[0]);
-  });
+  function copyText(t, msg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function(){ toastMsg(msg || "Copied!"); },
+        function(){ fallbackCopy(t, msg); });
+    } else { fallbackCopy(t, msg); }
+  }
+  function fallbackCopy(t, msg) {
+    var ta = document.createElement("textarea");
+    ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); toastMsg(msg || "Copied!"); } catch(e) { toastMsg("Copy failed"); }
+    document.body.removeChild(ta);
+  }
 
-  function loadFile(file) {
-    clearErr();
-    var reader = new FileReader();
-    reader.onload = function (e) {
-      var img = new Image();
-      img.onload = function () {
-        var w = img.naturalWidth, h = img.naturalHeight;
-        if (w === 0 || h === 0) { showErr("Could not read image dimensions."); return; }
-        var c = document.createElement("canvas");
-        c.width = w; c.height = h;
-        var ctx = c.getContext("2d", { willReadFrequently: true });
-        ctx.drawImage(img, 0, 0, w, h);
-        var data = ctx.getImageData(0, 0, w, h);
-        original = data;
-        run();
-      };
-      img.onerror = function () { showErr("Could not decode that image file."); };
-      img.src = e.target.result;
+  function loadFile(f) {
+    if (!f || !f.type || f.type.indexOf("image/") !== 0) { toastMsg("Please choose an image file"); return; }
+    var url = URL.createObjectURL(f);
+    var img = new Image();
+    img.onload = function () {
+      srcCanvas = document.createElement("canvas");
+      srcCanvas.width = img.naturalWidth;
+      srcCanvas.height = img.naturalHeight;
+      var ctx = srcCanvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      fileName = (f.name || "image").replace(/\.[^.]+$/, "");
+      renderOriginal();
+      doReduce();
+      URL.revokeObjectURL(url);
     };
-    reader.onerror = function () { showErr("Could not read the file."); };
-    reader.readAsDataURL(file);
+    img.onerror = function () { toastMsg("Could not read that image"); URL.revokeObjectURL(url); };
+    img.src = url;
+  }
+
+  function renderOriginal() {
+    var z = parseInt(zoom.value, 10);
+    var c = document.createElement("canvas");
+    c.width = srcCanvas.width * z;
+    c.height = srcCanvas.height * z;
+    var ctx = c.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(srcCanvas, 0, 0, c.width, c.height);
+    origWrap.innerHTML = "";
+    origWrap.appendChild(c);
   }
 
   // ---- Median-cut quantization ----
   function medianCut(pixels, n) {
     // pixels: array of [r,g,b] (opaque only)
     if (pixels.length === 0) return [];
+    if (pixels.length <= n) {
+      // just return unique colors
+      var seen = {}, out = [];
+      for (var i = 0; i < pixels.length; i++) {
+        var k = pixels[i][0] + "," + pixels[i][1] + "," + pixels[i][2];
+        if (!seen[k]) { seen[k] = 1; out.push(pixels[i]); }
+      }
+      return out.slice(0, n);
+    }
     var boxes = [pixels.slice()];
     while (boxes.length < n) {
-      // pick the box with the largest range (and most pixels as tiebreak)
-      var best = -1, bestScore = -1;
+      // find the box with the largest range
+      var bi = 0, best = -1;
       for (var i = 0; i < boxes.length; i++) {
-        if (boxes[i].length < 2) continue;
-        var r = range(boxes[i], 0), g = range(boxes[i], 1), b = range(boxes[i], 2);
-        var score = Math.max(r, g, b) * 1000 + boxes[i].length;
-        if (score > bestScore) { bestScore = score; best = i; }
+        var r = range(boxes[i]);
+        if (r.max - r.min > best) { best = r.max - r.min; bi = i; }
       }
-      if (best === -1) break;
-      var box = boxes[best];
-      var r = range(box, 0), g = range(box, 1), b = range(box, 2);
-      var ch = (r >= g && r >= b) ? 0 : (g >= b ? 1 : 2);
-      box.sort(function (a, b2) { return a[ch] - b2[ch]; });
-      var mid = box.length >> 1;
-      boxes.splice(best, 1, box.slice(0, mid), box.slice(mid));
+      if (best <= 0) break;
+      var box = boxes.splice(bi, 1)[0];
+      var split = splitBox(box);
+      boxes.push(split[0], split[1]);
     }
-    var colors = boxes.map(function (box) {
-      var ar = 0, ag = 0, ab = 0;
-      for (var i = 0; i < box.length; i++) { ar += box[i][0]; ag += box[i][1]; ab += box[i][2]; }
-      var len = box.length;
-      return [Math.round(ar / len), Math.round(ag / len), Math.round(ab / len)];
-    });
-    return colors;
+    var palette = [];
+    for (var j = 0; j < boxes.length; j++) palette.push(average(boxes[j]));
+    return palette;
   }
-  function range(box, ch) {
-    var min = 255, max = 0;
+  function range(box) {
+    var min = [255,255,255], max = [0,0,0];
     for (var i = 0; i < box.length; i++) {
-      var v = box[i][ch];
-      if (v < min) min = v;
-      if (v > max) max = v;
+      for (var c = 0; c < 3; c++) {
+        if (box[i][c] < min[c]) min[c] = box[i][c];
+        if (box[i][c] > max[c]) max[c] = box[i][c];
+      }
     }
-    return max - min;
+    var maxR = Math.max(max[0]-min[0], max[1]-min[1], max[2]-min[2]);
+    return { max: maxR, min: 0 };
+  }
+  function splitBox(box) {
+    // split on the channel with the largest range
+    var min = [255,255,255], max = [0,0,0];
+    for (var i = 0; i < box.length; i++) {
+      for (var c = 0; c < 3; c++) {
+        if (box[i][c] < min[c]) min[c] = box[i][c];
+        if (box[i][c] > max[c]) max[c] = box[i][c];
+      }
+    }
+    var axis = 0, span = max[0]-min[0];
+    if (max[1]-min[1] > span) { axis = 1; span = max[1]-min[1]; }
+    if (max[2]-min[2] > span) { axis = 2; span = max[2]-min[2]; }
+    box.sort(function (a, b) { return a[axis] - b[axis]; });
+    var mid = box.length >> 1;
+    return [box.slice(0, mid), box.slice(mid)];
+  }
+  function average(box) {
+    var r = 0, g = 0, b = 0;
+    for (var i = 0; i < box.length; i++) { r += box[i][0]; g += box[i][1]; b += box[i][2]; }
+    var n = box.length;
+    return [Math.round(r/n), Math.round(g/n), Math.round(b/n)];
   }
 
-  function toHex(r, g, b) {
-    function h(x) { var s = x.toString(16); return s.length === 1 ? "0" + s : s; }
-    return "#" + h(r) + h(g) + h(b);
+  function hex(rgb) {
+    function h(v){ var s = v.toString(16); return s.length < 2 ? "0"+s : s; }
+    return "#" + h(rgb[0]) + h(rgb[1]) + h(rgb[2]);
   }
 
-  function run() {
-    var w = original.width, h = original.height;
-    var d = original.data;
-    var opaque = [];
+  function doReduce() {
+    if (!srcCanvas) return;
+    var n = parseInt(nSel.value, 10);
+    var w = srcCanvas.width, h = srcCanvas.height;
+    var img = srcCanvas.getContext("2d").getImageData(0, 0, w, h);
+    var d = img.data;
+
+    // collect opaque pixels
+    var pixels = [];
     for (var i = 0; i < d.length; i += 4) {
-      if (d[i + 3] > 0) opaque.push([d[i], d[i + 1], d[i + 2]]);
+      if (d[i+3] > 127) pixels.push([d[i], d[i+1], d[i+2]]);
     }
-    var n = parseInt(nColors.value, 10);
-    palette = medianCut(opaque, n);
-    // dedupe: median-cut can emit identical buckets when the image has fewer
-    // distinct colors than N -- collapse to one swatch per distinct color
-    var seen = {};
-    var uniq = [];
-    for (var u = 0; u < palette.length; u++) {
-      var key = palette[u][0] + "," + palette[u][1] + "," + palette[u][2];
-      if (!seen[key]) { seen[key] = true; uniq.push(palette[u]); }
-    }
-    palette = uniq;
-    // build lookup
-    var lookup = palette.map(function (c) { return c; });
+    if (pixels.length === 0) { toastMsg("Image has no opaque pixels"); return; }
 
+    var pal = medianCut(pixels, n);
+    paletteHexes = pal.map(hex);
+
+    // map each pixel to nearest palette color (nearest in RGB space)
     var out = new ImageData(w, h);
     var od = out.data;
-    for (var j = 0; j < d.length; j += 4) {
-      var a = d[j + 3];
-      if (a === 0) { od[j] = 0; od[j+1] = 0; od[j+2] = 0; od[j+3] = 0; continue; }
-      var r = d[j], g = d[j+1], b = d[j+2];
-      // nearest palette color
+    for (var p = 0; p < d.length; p += 4) {
+      if (d[p+3] <= 127) { od[p+3] = 0; continue; }
+      var r = d[p], g = d[p+1], b = d[p+2];
       var best = 0, bestD = Infinity;
-      for (var k = 0; k < lookup.length; k++) {
-        var dr = lookup[k][0] - r, dg = lookup[k][1] - g, db = lookup[k][2] - b;
-        var dist = dr * dr + dg * dg + db * db;
+      for (var k = 0; k < pal.length; k++) {
+        var dr = pal[k][0]-r, dg = pal[k][1]-g, db = pal[k][2]-b;
+        var dist = dr*dr + dg*dg + db*db;
         if (dist < bestD) { bestD = dist; best = k; }
       }
-      od[j] = lookup[best][0];
-      od[j+1] = lookup[best][1];
-      od[j+2] = lookup[best][2];
-      od[j+3] = a;
+      od[p] = pal[best][0]; od[p+1] = pal[best][1]; od[p+2] = pal[best][2]; od[p+3] = d[p+3];
     }
-    reduced = out;
-    render();
+
+    reducedCanvas = document.createElement("canvas");
+    reducedCanvas.width = w; reducedCanvas.height = h;
+    reducedCanvas.getContext("2d").putImageData(out, 0, 0);
+
+    renderReduced();
+    renderPalette();
+    stats.innerHTML = "Original <b>" + uniqueCount(d) + "</b> colors → <b>" + pal.length + "</b> colors &nbsp;·&nbsp; <b>" + w + "×" + h + "</b> px";
+    downloadBtn.disabled = false;
+    copyAllBtn.disabled = false;
   }
 
-  function render() {
-    var w = original.width, h = original.height;
-    var z = parseInt(zoomSel.value, 10);
-    var dispW = w * z, dispH = h * z;
+  function uniqueCount(d) {
+    var seen = {};
+    for (var i = 0; i < d.length; i += 4) {
+      if (d[i+3] > 127) seen[d[i]+","+d[i+1]+","+d[i+2]] = 1;
+    }
+    return Object.keys(seen).length;
+  }
 
-    before.width = dispW; before.height = dispH;
-    after.width = dispW; after.height = dispH;
-    var bctx = before.getContext("2d");
-    var actx = after.getContext("2d");
-    bctx.imageSmoothingEnabled = false;
-    actx.imageSmoothingEnabled = false;
-
-    // draw original at 1x then scale
-    var tmp = document.createElement("canvas");
-    tmp.width = w; tmp.height = h;
-    tmp.getContext("2d").putImageData(original, 0, 0);
-    bctx.drawImage(tmp, 0, 0, dispW, dispH);
-
-    var tmp2 = document.createElement("canvas");
-    tmp2.width = w; tmp2.height = h;
-    tmp2.getContext("2d").putImageData(reduced, 0, 0);
-    actx.drawImage(tmp2, 0, 0, dispW, dispH);
-
-    renderPalette();
-    statsEl.innerHTML = "Original: <b>" + w + "×" + h + "</b> px · Reduced to <b>" + palette.length + "</b> colors";
-    downloadBtn.disabled = false;
-    copyBtn.disabled = false;
+  function renderReduced() {
+    if (!reducedCanvas) return;
+    var z = parseInt(zoom.value, 10);
+    var c = document.createElement("canvas");
+    c.width = reducedCanvas.width * z;
+    c.height = reducedCanvas.height * z;
+    var ctx = c.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(reducedCanvas, 0, 0, c.width, c.height);
+    redWrap.innerHTML = "";
+    redWrap.appendChild(c);
   }
 
   function renderPalette() {
-    paletteEl.innerHTML = "";
-    palette.forEach(function (c) {
-      var hex = toHex(c[0], c[1], c[2]);
-      var el = document.createElement("div");
-      el.className = "swatch";
-      el.style.background = hex;
-      el.title = "Click to copy " + hex;
-      var s = document.createElement("span");
-      s.textContent = hex;
-      el.appendChild(s);
-      el.addEventListener("click", function () {
-        copyText(hex, "Copied " + hex);
-      });
-      paletteEl.appendChild(el);
-    });
-  }
-
-  function copyText(text, msg) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { toastShow(msg || "Copied!"); });
-    } else {
-      var ta = document.createElement("textarea");
-      ta.value = text; document.body.appendChild(ta); ta.select();
-      try { document.execCommand("copy"); toastShow(msg || "Copied!"); } catch (e) {}
-      document.body.removeChild(ta);
+    palette.innerHTML = "";
+    for (var i = 0; i < paletteHexes.length; i++) {
+      (function (hx) {
+        var s = document.createElement("div");
+        s.className = "swatch";
+        s.style.background = hx;
+        s.title = hx;
+        s.innerHTML = '<span class="hex">' + hx + '</span>';
+        s.addEventListener("click", function () { copyText(hx, hx + " copied"); });
+        palette.appendChild(s);
+      })(paletteHexes[i]);
     }
+    palHint.style.display = "block";
   }
 
-  nColors.addEventListener("input", function () {
-    nVal.textContent = nColors.value;
-    if (original) run();
-  });
-  zoomSel.addEventListener("change", function () { if (reduced) render(); });
+  function download() {
+    if (!reducedCanvas) return;
+    reducedCanvas.toBlob(function (blob) {
+      if (!blob) { toastMsg("Export failed"); return; }
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName + "-reduced.png";
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+      toastMsg("Downloaded " + a.download);
+    }, "image/png");
+  }
 
-  downloadBtn.addEventListener("click", function () {
-    if (!reduced) return;
-    var c = document.createElement("canvas");
-    c.width = reduced.width; c.height = reduced.height;
-    c.getContext("2d").putImageData(reduced, 0, 0);
-    var a = document.createElement("a");
-    a.download = "palette-reduced.png";
-    a.href = c.toDataURL("image/png");
-    a.click();
+  // events
+  drop.addEventListener("click", function(){ file.click(); });
+  file.addEventListener("change", function(){ loadFile(file.files[0]); });
+  ["dragenter","dragover"].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add("drag"); });
+  });
+  ["dragleave","drop"].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove("drag"); });
+  });
+  drop.addEventListener("drop", function(e){
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+  });
+  zoom.addEventListener("input", function(){
+    zoomVal.textContent = zoom.value + "×";
+    if (srcCanvas) renderOriginal();
+    if (reducedCanvas) renderReduced();
+  });
+  nSel.addEventListener("change", function(){ if (srcCanvas) doReduce(); });
+  reduceBtn.addEventListener("click", doReduce);
+  downloadBtn.addEventListener("click", download);
+  copyAllBtn.addEventListener("click", function(){
+    copyText(paletteHexes.join(", "), paletteHexes.length + " hexes copied");
   });
 
-  copyBtn.addEventListener("click", function () {
-    var hexes = palette.map(function (c) { return toHex(c[0], c[1], c[2]); });
-    copyText(hexes.join("\n"), "Copied " + hexes.length + " hexes");
+  // allow pasting an image from clipboard
+  window.addEventListener("paste", function (e) {
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image/") === 0) {
+        var f = items[i].getAsFile();
+        if (f) { loadFile(f); return; }
+      }
+    }
   });
-
-  // show panels when image loaded
-  var _run = run;
-  run = function () {
-    _run();
-    controlsPanel.style.display = "block";
-    views.style.display = "grid";
-  };
 })();
 </script>
 </body>
